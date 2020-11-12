@@ -1,0 +1,60 @@
+{
+	"manifest_version": 2,
+	"name": "Paranoia",
+	"version": "0.0.1-devel",
+	"author": "Holger Smolinski",
+	"developer": {
+		"name": "Holger Smolinski",
+		"url": "https://www.nopictureplease.de"
+	},
+	"default_locale": "en",
+	"description": "__MSG_extensionDescription__",
+	"permissions": [
+		"<all_urls>",
+		"nativeMessaging",
+		"storage",
+		"tabs",
+		"webRequest",
+		"webRequestBlocking"
+	],
+	"browser_action": {
+		"browser_style": true,
+		"default_area": "navbar",
+		"default_title": "Paranoia information",
+		"default_popup": "html/popup.html"
+	},
+	"background": {
+		"scripts": [
+			"script/sha256.js",
+			"helpers.js",
+			"options.js",
+			"script/background.js"
+		]
+	},
+	"sidebar_action": {
+		"default_title": "__MSG_sidebarTitle__",
+		"default_panel": "html/sidebar.html",
+		"default_icon": "icons/sidebar_icon.png"
+	},
+	"content_scripts" :  [
+  		{
+    		"matches": ["<all_urls>"],
+    		"js": ["script/content.js" ]
+  		}
+	],
+	"options_ui" : {
+		"page": "html/options.html",
+  		"browser_style": true
+	},
+	"applications": {
+		"gecko": {
+			"id": "paranoia@nopicturesplease.de"
+		}
+	},
+	"browser_specific_settings": {
+		"gecko": {
+			"strict_min_version": "62.0b5",
+			"update_url": null
+		}
+	}
+}

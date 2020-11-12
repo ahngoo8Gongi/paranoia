@@ -1,0 +1,10 @@
+{
+	"extensionDescription": {
+		"description": "Description of the extension.",
+		"message": "Provides privacy related information"
+	},
+	"sidebarTitle" : {
+		"description": "Title of the sidebar.",
+		"message": "Paranoia Information"
+	}
+}
