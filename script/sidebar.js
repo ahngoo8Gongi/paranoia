@@ -16,10 +16,93 @@ async function init() {
 		"name": manifest.name,
 		"version": manifest.version,
 		"copyright": "(C) 2020, " + manifest.author,
-		"license": "MPL-2.0 + Webtoolkit",
+		"license": "MPL-2.0",
 		"function": "sidebar.js",
 	};
+
+	function makeDisplaySecurityInfo(res) {
+		let element = new HtmlBuilder("img")
+			.addCssClass("small_icon");
+		
+		if ( res.security === null ) {
+			element.setAttribute("src","../icons/nossl.png")
+		} else {
+			element.setAttribute("src","../icons/ssl.png");
+		}
+		
+		let security = assessSecurityInfo(res.security);
+		return element
+			.addCssClass(security)
+			.addEventListener("click", function () {
+				alert("ssl clicked");
+			});
+	}
 	
+	function makeDisplayCookieInfo(res) {
+		return new HtmlBuilder("img")
+			.addCssClass("small_icon")
+			.setAttribute("src","../icons/cookie.png")
+			.addEventListener("click", function () {
+				alert("cookie clicked");
+			});
+	}
+	
+	function makeDisplayScriptInfo(scripts) {
+	
+	}
+	
+	function makeDisplayEntry(res) {
+		if ( !res.hasOwnProperty("url") ) {
+			throw("makeDisplayEntry: invalid resource (no url!)");
+		}
+		return new HtmlBuilder("tr")
+					.append( new HtmlBuilder("td")
+						.append( makeDisplaySecurityInfo(res).build() ) 
+						.build() )
+					.append( new HtmlBuilder("td")
+						.append( makeDisplayCookieInfo(res).build() ) 
+						.build() )
+					.append( new HtmlBuilder("td")
+						.setInnerHtml("Script")
+						.build() )
+					.append ( new HtmlBuilder("th")
+						.setAttribute("colspan","3")
+						.setInnerHtml(res.url)
+						.build() );
+	}
+	
+	function displayTab(tab) {
+		let thead = new HtmlBuilder("thead")
+			.append ( makeDisplayEntry(tab).build() );
+		
+		let tbody = new HtmlBuilder("tbody");
+		for ( let res of tab.res ) {
+			tbody.append( makeDisplayEntry(res).build() );
+		}
+		
+		let table = new HtmlBuilder("table")
+			.append( thead.build() )
+			.append( tbody.build() );
+		
+		let content = document.getElementById("content");
+		while ( content.firstChild != null ) {
+			content.removeChild(content.firstChild);
+		}
+		content.append(table.build());	
+	}
+	
+	var tabDisplayTasklet = null;
+	function doTabDisplayUpdate(tab) {
+		tabDisplayTasklet = null;
+		displayTab(tab);
+	}
+	function triggerTabDisplayUpdate(tab) {
+		if (tabDisplayTasklet != null ) {
+			cancelTimeout(tabDisplayTasklet);
+			// No need to reset to null, as JS in synchronous!
+		}
+		tabDisplayTasklet = setTimeout(doTabDisplayUpdate,0,tab);
+	}
 	/*
 	 * Communication with background script 
 	 */
@@ -30,10 +113,13 @@ async function init() {
             	myPort.postMessage({"cmd": "OLEH", "text": "background script. This is sidenbar."});
             } else if (m.cmd === "OLEH") {
             	console.debug("sideBarCommandProcessor: connection established -\"" + m.text + "\"");
+            } else if (m.cmd === "DISP") {
+            	console.debug("sideBarCommandProcessor: Display -\"" + JSON.stringify(m.arg) + "\"");
+            	triggerTabDisplayUpdate(m.arg)
             } 
             else { 
             	console.warn("Invalid message" + JSON.stringify(m))
-            }
+            } 
         }
 	
 	/*
@@ -48,6 +134,8 @@ async function init() {
         });
         myPort.onMessage.addListener(sideBarCommandProcessor);
         myPort.postMessage({"cmd": "HELO", "text": "background script. This is sidenbar."});
+        
+        /* TODO: keepalive mechanism... */
 
 		rval.result = "OK";
 	} catch (ex) {
@@ -59,6 +147,15 @@ async function init() {
 
 init()
 	.then(
-	function(res) { console.log("Loaded: " + JSON.stringify(res)); },
+	function(res) { let  msg_fn = null;
+		if ( res.result === "OK" ) {
+			msg_fn=console.log;
+		} else if ( re.result === "Failed" ) {
+			msg_fn = console.error
+		} else {
+			throw ("init: unknown result status (" + JSON.stringify(res) + ")");
+		}
+		msg_fn(JSON.stringify(res)); 
+	},
 	function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
 );

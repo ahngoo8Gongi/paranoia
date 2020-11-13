@@ -16,44 +16,88 @@ async function init() {
 		"name": manifest.name,
 		"version": manifest.version,
 		"copyright": "(C) 2020, " + manifest.author,
-		"license": "MPL-2.0 + Webtoolkit",
+		"license": "MPL-2.0",
 		"function": "background.js",
 	};
+
+	/* the ports we are conected to */	 
+	var comports = {};
+	
+	/* The tabs we deal with */
+	var tabs = {};
+	
+	function messageSidebarUpdate(tabId) {
+		if ( !tabs.hasOwnProperty(tabId) ) {
+			console.log("messageSidebarUpdate: scheduled to update invalid tab " + tabId);
+		} else {
+			try {
+				comports.sidebar.postMessage({ "cmd": "DISP", "arg": tabs[tabId] });
+			}
+			catch (ex) {
+				console.error("messageSidebarUpdate: error" + JSON.stringify(ex));
+				delete comports.sidebar;
+			}	
+		}
+	}
+	
+	var updateMessageTimeout = null;
+	
+	function triggerSidebarUpdate(tabId) {
+		if ( updateMessageTimeout != null ) {
+			clearTimeout(updateMessageTimeout);
+			// No need to reset to null, as JS in synchronous!
+		}
+		if ( comports.hasOwnProperty("sidebar") ) {
+			messageSidebarUpdate(tabId);
+		} else {
+			console.log("triggerSidebarUpdate: postponing trigger");
+			updateMessageTimeout = setTimeout(triggerSidebarUpdate, 100, tabId);
+		}
+	}
 	
 	/*
 	 * tab management
-	 */
-
-	var tabs = {};
-	
+	 */	
 	function onTabCreatedCallback(tab) {
 		if (!tab.hasOwnProperty("id") || !tab.hasOwnProperty("url")) {
 				throw ("onTabCreatedCallback: tab created is invalid. " + JSON.stringify(tab));
 		}
 		console.debug("onTabCreatedCallback: tab created " + JSON.stringify(tab));
 		let id = tab.id.toString();
-		
-		tabs[id] = {};
+		if ( tabs[id] ) {
+			throw("onTabCreatedCallback: created existing tab "+id);
+		} 
+		tabs[id] = new TabInfo(tab.url);
 	}
 	
 	function onTabRemovedCallback(tabid) {
+		let id = tabid.toString();
 		console.debug("onTabRemovedCallback: tab (" + tabid + ") removed.");
-		delete tabs[tabid];
-	}
-	
-	function onTabUpdatedCallback(tabId, changeInfo, tab) {
+		if ( !tabs.hasOwnProperty(id) ) {
+			console.warn("onTabRemovededCallback: removing non-existing tab "+ id 
+				+ "(maybe a stale one from before loading the extension)");
+		}
+		delete tabs[id];
 	}
 	
 	function onTabActivatedCallback(activeInfo) {
-		console.debug("onTabActivatedCallback: tab (" + JSON.stringify(activeInfo) + ") removed.");
+		if ( !activeInfo.hasOwnProperty("tabId") ) {
+			throw("onTabActivatedCallback: inavlid activeInfo (" + JSON.stringify(activeInfo) + ")." );
+		}
+		let tabId = activeInfo.tabId.toString();
+		if ( !tabs.hasOwnProperty(tabId) ) {
+			/* TODO: populate Tab from tabinfo */
+		}
+		triggerSidebarUpdate(tabId);
+		console.debug("onTabActivatedCallback: tab (" + JSON.stringify(activeInfo) + ").");
+	} 
+	
+	function onTabUpdatedCallback(tabId, changeInfo, tab) {
 	}
 	
 	/*
 	 * communication with other parts
 	 */
-
-	/* the ports we are conected to */	 
-	var comports = {};
 
 	/*
 	 * Sidebar communication
@@ -107,16 +151,23 @@ async function init() {
 		"extension": extension,
 	};
 	try {
+		browser.browserAction.onClicked.addListener( function (tab) {
+			browser.sidebarAction.toggle();
+		});
+		
 	 	browser.runtime.onConnect.addListener(onConnectCallback);
 	 	
 	 	browser.tabs.onCreated.addListener(onTabCreatedCallback);
 		browser.tabs.onRemoved.addListener(onTabRemovedCallback);
+	
+		browser.tabs.onActivated.addListener(onTabActivatedCallback);
+
 		browser.tabs.onUpdated.addListener(onTabUpdatedCallback,
 			{
 				"urls": ["<all_urls>"],
 				"properties": ["status"]
 			});
-		browser.tabs.onActivated.addListener(onTabActivatedCallback);
+
 
 		rval.result = "OK";
 	} catch (ex) {
@@ -128,6 +179,16 @@ async function init() {
 
 init()
 	.then(
-	function(res) { console.log("Loaded: " + JSON.stringify(res)); },
+	function(res) {
+		let  msg_fn = null;
+		if ( res.result === "OK" ) {
+			msg_fn=console.log;
+		} else if ( res.result === "Failed" ) {
+			msg_fn = console.error
+		} else {
+			throw ("init: unknown result status (" + JSON.stringify(res) + ")");
+		}
+		msg_fn(JSON.stringify(res)); 
+	},
 	function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
 );

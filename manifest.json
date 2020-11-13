@@ -8,7 +8,7 @@
 		"url": "https://www.nopictureplease.de"
 	},
 	"default_locale": "en",
-	"description": "__MSG_extensionDescription__",
+	"description": "__MSG_extensionDescription__\nLicenses: MPL-2.0 + Webtoolkit",
 	"permissions": [
 		"<all_urls>",
 		"nativeMessaging",
@@ -17,19 +17,19 @@
 		"webRequest",
 		"webRequestBlocking"
 	],
-	"browser_action": {
-		"browser_style": true,
-		"default_area": "navbar",
-		"default_title": "Paranoia information",
-		"default_popup": "html/popup.html"
-	},
 	"background": {
 		"scripts": [
 			"script/sha256.js",
 			"helpers.js",
 			"options.js",
+			"script/Tab.js",
 			"script/background.js"
 		]
+	},
+	"browser_action": {
+		"browser_style": true,
+		"default_area": "navbar",
+		"default_title": "Paranoia information"
 	},
 	"sidebar_action": {
 		"default_title": "__MSG_sidebarTitle__",

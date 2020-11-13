@@ -4,11 +4,13 @@
 * Original code by Angel Marin, Paul Johnston
 *
 * License: http://www.webtoolkit.info/license1/index.html
+*
 * As long as you leave the copyright notice of the original script, or
 * link back to this website, you can use any of the content published
 * on this website free of charge for any use: commercial or
 * noncommercial. However, under the license they are released through
-* there are limitations to what you may or may not do. 
+* there are limitations to what you may or may not do.
+* 
 * You Can:
 *   Use the resources in your personal work, in whole or part.
 *   Use the resources in your commercial work, in whole or part.
@@ -16,7 +18,8 @@
 *   Share the resources with others, under the following terms:
 *       Link to the resource webpage, not the download file.
 *       Use an excerpt from the webpage if necessary (don’t copy the
-*         full article and display it on your site) 
+*         full article and display it on your site)
+* 
 * You Can Not:
 *   You can NOT sell the resources directly for profit (eg. Selling
 *     the items on stock resource websites) 

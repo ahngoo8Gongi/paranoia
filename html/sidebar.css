@@ -1,3 +1,24 @@
 html {
-	background-color: rgb(256,240,240)
+	background-color: rgb(255,255,240);
+}
+
+.insecure {
+	background-color: red;	
+}
+
+.doubtful {
+	background-color: yellow;	
+}
+
+.secure {
+	background-color: green;	
+}
+
+#foot {
+	position: fixed;
+	bottom: 0px;
+	width: 100%;
+	border-width: 1px 0px 0px 0px;
+	border-style: solid;
+	border-color: black;	
 }
