@@ -2,15 +2,29 @@ html {
 	background-color: rgb(255,255,240);
 }
 
-.insecure {
+.httpstatus {
+	width: 3em;	
+}
+.truncate {
+  width: calc(100% - 9em); /* TODO: need to adjust em value to actual widths */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nossl {
+	background-color: grey;
+}
+.badssl {
 	background-color: red;	
 }
-
-.doubtful {
+.wrongssl {
+	background-color: orange;	
+}
+.somessl {
 	background-color: yellow;	
 }
-
-.secure {
+.goodssl {
 	background-color: green;	
 }
 

@@ -10,7 +10,8 @@
 class TabInfo {
 		constructor(url) {
 			this.url = url;       /* (reduced) url of location */
-			this.urlhash = "0x0"  /* hash of (reduced) URL */ 
+			this.status = false;
+			this.urlhash = SHA256(url);  /* hash of (reduced) URL */ 
 			this.security = null; /* security information */
 			this.cookies = {      /* cookies sent/received */
 				"out": [],

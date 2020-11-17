@@ -8,8 +8,17 @@
  */
  
  function assessSecurityInfo(secInfo) {
+ 	/* 
+ 	 * returns:
+ 	 * "nossl" - if ssl is not at all used
+ 	 * "badssl" - is ssl is invalid
+ 	 * "wrongssl" - if ssl has weaknesses
+ 	 * "somessl" - if ssl is present but not trustful
+ 	 * "goodssl" - if ssl is good
+ 	 * keywords are re-used as CSS classes
+ 	 */
  	if ( secInfo === null ) {
- 		return "insecure";
+ 		return "nossl";
  	}
- 	return "secure";
+ 	return "somessl";
  }

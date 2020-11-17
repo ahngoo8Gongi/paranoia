@@ -80,12 +80,14 @@ async function init() {
 		delete tabs[id];
 	}
 	
-	function onTabActivatedCallback(activeInfo) {
+	async function onTabActivatedCallback(activeInfo) {
 		if ( !activeInfo.hasOwnProperty("tabId") ) {
 			throw("onTabActivatedCallback: inavlid activeInfo (" + JSON.stringify(activeInfo) + ")." );
 		}
 		let tabId = activeInfo.tabId.toString();
 		if ( !tabs.hasOwnProperty(tabId) ) {
+			let tab = await browser.tabs.get(activeInfo.tabId);
+			tabs[tabId] = new TabInfo(tab.url);
 			/* TODO: populate Tab from tabinfo */
 		}
 		triggerSidebarUpdate(tabId);
