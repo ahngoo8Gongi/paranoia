@@ -21,7 +21,9 @@ async function init() {
 	};
 
 	/* the ports we are conected to */
-	var comports = {};
+	var comports = {
+		content: []
+	};
 
 	/* The tabs we deal with */
 	var tabs = {};
@@ -179,6 +181,9 @@ async function init() {
 	 * Sidebar communication
 	 */
 	function onSidebarMessageReceivedCallback(message, sender, receipt_fn) {
+		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
+		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
+		
 		if (sender.name === "sidebar") {
 			console.debug("onSidebarMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
 			/* TODO: identify and process known message here */
@@ -201,23 +206,68 @@ async function init() {
 				+ "\" " + JSON.stringify(message) + "\"");
 		}
 	}
+	/*
+	 * Content communication
+	 */
+
+	function onContentMessageReceivedCallback(message, sender, receipt_fn) {
+		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
+		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
+		if (!sender.sender.hasOwnProperty("tab")) throw ("Invalid Sender: has no property sender.tab");
+		if (!sender.sender.tab.hasOwnProperty("id")) throw ("Invalid Sender Tab: has no property id");
+		if (sender.name === "content") {
+			console.debug("onContentMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
+			if (comports.content[sender.sender.tab.id]) {
+				/* TODO: identify and process known message here */
+				if (message.cmd === "HELO") {
+					let msg ={
+						"cmd": "OLEH", 
+						"text": "content script. " + sender.sender.tab.id + ", This is background."
+						};
+					comports.content[sender.sender.tab.id].postMessage(msg);
+				} else if (message.cmd === "OLEH") {
+					console.debug("onContentMessageReceivedCallback: connection established -\"" + message.text + "\"");
+				}
+				/* End TODO */
+				else {
+					console.warn("onContentMessageReceivedCallback: received unknown message \""
+						+ JSON.stringify(message) + "\"");
+				}
+				if (receipt_fn) {
+					receipt_fn({ "received": true });
+				}
+			}
+		} else {
+			console.error("onContentMessageReceivedCallback: received message from unknown sender:"
+				+ "(" + JSON.stringify(sender) + ")"
+				+ "\" " + JSON.stringify(message) + "\"");
+		}
+	}
 
 	/*
 	 * communication hub
 	 */
 
 	function onConnectCallback(port) {
+		let name;
 		if (!port.hasOwnProperty("name")) {
 			throw ("onConnectCallback: port connected is invalid. " + JSON.stringify(port));
 		}
 		if (port.name === "sidebar") {
-			console.debug("onConnectCallback: connection accepted from sidebar");
+			name = port.name;
 			comports.sidebar = port;
-			comports.sidebar.postMessage({ "cmd": "HELO", "text": "sidebar script. This is background." });
 			comports.sidebar.onMessage.addListener(onSidebarMessageReceivedCallback);
+		} else if (port.name === "content") {
+			let tab = port.sender.tab;
+			name = port.name + "_" + tab.id;
+			comports.content[tab.id] = port;
+			comports.content[tab.id].onMessage.addListener(onContentMessageReceivedCallback);
 		} else {
-			console.warn("onConnectCallback: connected from unknown port \"" + port.name + "\"");
+			throw ("onConnectCallback: connected from unknown port \"" + port.name + "\"");
 		}
+		port.postMessage({ "cmd": "HELO", "text": name + ". This is background." });
+		
+		console.info("onConnectCallback: connection accepted from " + name);
 	}
 
 	/*
