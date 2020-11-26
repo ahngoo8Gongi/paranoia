@@ -1,5 +1,5 @@
 /**
- * @file PaWS extension for Mozilla Firefox
+ * @file Paranoia extension for Mozilla Firefox
  * @author Holger Smolinski
  * @copyright (C), 2020 Holger Smolinski
  * @license MPL-2.0 This Source Code Form is subject to the terms of the Mozilla
@@ -11,7 +11,8 @@ class TabInfo {
 		constructor(url) {
 			this.url = url;       /* (reduced) url of location */
 			this.status = false;
-			this.urlhash = SHA256(url);  /* hash of (reduced) URL */ 
+			this.urlhash = SHA256(url);  /* hash of (reduced) URL */
+			this.requestID = null; 
 			this.security = null; /* security information */
 			this.cookies = {      /* cookies sent/received */
 				"out": [],

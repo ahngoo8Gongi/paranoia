@@ -61,7 +61,7 @@ async function init() {
 						.setAttribute("id","SecurityHost")
 						.makePopup()
 						.build() )
-					.append ( new HtmlBuilder("th")
+					.append ( new HtmlBuilder("td")
 						.addCssClass("httpstatus")
 						.setInnerHtml(res.status ? (res.status+"") : "Old")
 						.setAttribute("id","StatusHost")
@@ -79,6 +79,7 @@ async function init() {
 							.build() )
 						.setAttribute("id","UrlHost")
 						.addCssClass("popup")
+						.addCssClass("truncated")
 						.build() )
 					.append( new HtmlBuilder("td")
 						.setInnerHtml("Script")
@@ -88,15 +89,18 @@ async function init() {
 	}
 	
 	function displayTab(tab) {
+		orderTabByHost(tab, true);
 		let thead = new HtmlBuilder("thead")
 			.append ( makeDisplayEntry(tab).build() );
 		
 		let tbody = new HtmlBuilder("tbody");
 		for ( let res of tab.res ) {
-			tbody.append( makeDisplayEntry(res).build() );
+			let row = makeDisplayEntry(res);
+			tbody.append( row.build() );
 		}
 		
 		let table = new HtmlBuilder("table")
+			.setAttribute("id","ResTable")
 			.append( thead.build() )
 			.append( tbody.build() );
 		
@@ -114,7 +118,7 @@ async function init() {
 	}
 	function triggerTabDisplayUpdate(tab) {
 		if (tabDisplayTasklet != null ) {
-			cancelTimeout(tabDisplayTasklet);
+			clearTimeout(tabDisplayTasklet);
 			// No need to reset to null, as JS in synchronous!
 		}
 		tabDisplayTasklet = setTimeout(doTabDisplayUpdate,0,tab);
@@ -126,7 +130,7 @@ async function init() {
             console.debug("In sidebar script, received message from background script: " 
             	+ JSON.stringify(m));
             if (m.cmd === "HELO") {
-            	myPort.postMessage({"cmd": "OLEH", "text": "background script. This is sidenbar."});
+            	myPort.postMessage({"cmd": "OLEH", "text": "background script. This is sidebar."});
             } else if (m.cmd === "OLEH") {
             	console.debug("sideBarCommandProcessor: connection established -\"" + m.text + "\"");
             } else if (m.cmd === "DISP") {
@@ -163,7 +167,8 @@ async function init() {
 
 init()
 	.then(
-	function(res) { let  msg_fn = null;
+	function(res) { 
+		let  msg_fn = null;
 		if ( res.result === "OK" ) {
 			msg_fn=console.log;
 		} else if ( re.result === "Failed" ) {
@@ -173,5 +178,7 @@ init()
 		}
 		msg_fn(JSON.stringify(res)); 
 	},
-	function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
+	function(ex) { 
+		console.error("Failed to initialize: " + JSON.stringify(ex)); 
+	}
 );

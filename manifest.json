@@ -20,7 +20,7 @@
 	"background": {
 		"scripts": [
 			"script/sha256.js",
-			"helpers.js",
+			"script/helper.js",
 			"options.js",
 			"script/Tab.js",
 			"script/background.js"

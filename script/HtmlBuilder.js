@@ -1,5 +1,6 @@
 class HtmlBuilder {
 	constructor(tag) {
+		if ( tag.length == 0) throw ("Invalid tag");
 		this.node = document.createElement(tag);
 		return this;
 	}

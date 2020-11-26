@@ -1,5 +1,5 @@
 /**
- * @file PaWS extension for Mozilla Firefox
+ * @file Paranoia extension for Mozilla Firefox
  * @author Holger Smolinski
  * @copyright (C), 2020 Holger Smolinski
  * @license MPL-2.0 This Source Code Form is subject to the terms of the Mozilla
@@ -25,6 +25,8 @@ async function init() {
 	
 	/* The tabs we deal with */
 	var tabs = {};
+	
+	var activeTab = null;
 	
 	function messageSidebarUpdate(tabId) {
 		if ( !tabs.hasOwnProperty(tabId) ) {
@@ -86,15 +88,76 @@ async function init() {
 		}
 		let tabId = activeInfo.tabId.toString();
 		if ( !tabs.hasOwnProperty(tabId) ) {
+			console.info("onTabActivatedCallback: activated unknown tab ("+tabId+"), creating tabInfo.");
 			let tab = await browser.tabs.get(activeInfo.tabId);
 			tabs[tabId] = new TabInfo(tab.url);
 			/* TODO: populate Tab from tabinfo */
 		}
+		activeTab = tabId;
 		triggerSidebarUpdate(tabId);
 		console.debug("onTabActivatedCallback: tab (" + JSON.stringify(activeInfo) + ").");
 	} 
 	
 	function onTabUpdatedCallback(tabId, changeInfo, tab) {
+		let id = tabId.toString();
+		if (!tabs.hasOwnProperty(id)) {
+			console.info("onTabUpdatedCallback: updated unknown tab ("+id+"), creating tabInfo.");
+				if (!tab.hasOwnProperty("url")) {
+				throw("onTabUpdatedCallback: activated invalid tab, no property url ("+JSON.stringify(tab)+")");
+			}
+			tabs[id] = new TabInfo(tab.url);
+		}
+		if (tab.status === "complete") {
+			if (id === activeTab) {
+				console.debug("onTabUpdatedCallback: activeTab (" + id + ") switched to complete state. Triggering update");
+				triggerSidebarUpdate(tabId);
+			} else {
+				console.info("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") switched to complete state while inactive. Active Tab = " + activeTab);
+			}					
+		} else if (tab.status === "loading") {
+			console.debug("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") updated - loading state.");
+		} else {
+			console.error("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") switched to unknown state (" + tab.status + ")");
+		}
+	}
+	
+	async function onHeadersReceivedCallback(details) {
+	    if (!details.hasOwnProperty("tabId")) 
+	    	throw("onHeadersReceivedCallback: ");
+	    if (!details.hasOwnProperty("url")) 
+	    	throw("onHeadersReceivedCallback: ");
+	    if (!details.hasOwnProperty("requestId")) 
+	    	throw("onHeadersReceivedCallback: ");
+		console.debug("headersReceivedCallback: called for" + " tab id:" + details.tabId +
+				" url: " + details.url + " Request ID: " + details.requestId);
+		// Paranoia
+		if (!tabs.hasOwnProperty("" + details.tabId + "")) {
+			console.error("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");
+			try {
+				let tab = await browser.tabs.get(details.tabId);
+				tabs[tabId] = new TabInfo(tab.url);
+			} catch(ex) {
+				console.error("onHeadersReceivedCallback: exception when correcting tab");
+				return;
+			}
+		}
+		// End Paranoia
+
+		let targetURL = reduceUrl(details.url)
+		let securityInfo = await browser.webRequest.getSecurityInfo(details.requestId, { "certificateChain": true });
+		console.debug("security Info = " + JSON.stringify(securityInfo));
+
+		if ((securityInfo === undefined || securityInfo === null || securityInfo === false)) {
+			console.warn("headersReceivedCallback/getSecurityInfoPromise didnt return a securityInfoObject for site with protocol" + targetURL.protocol + "!");
+			// TODO: What, if there is no security info?
+			return;
+		}
+		
+		let elem = new TabInfo(JSON.parse(JSON.stringify(targetURL)));
+		elem.requestId=details.requestId;
+		elem.security = JSON.parse(JSON.stringify(securityInfo)) || null;
+		// FIXME: we only want to push, if there is something new.
+		tabs["" + details.tabId + ""].res.push(elem);
 	}
 	
 	/*
@@ -169,6 +232,10 @@ async function init() {
 				"urls": ["<all_urls>"],
 				"properties": ["status"]
 			});
+
+		browser.webRequest.onHeadersReceived.addListener(onHeadersReceivedCallback,
+			{ urls: ["<all_urls>"] },
+			["blocking"]);
 
 
 		rval.result = "OK";
