@@ -20,16 +20,16 @@ async function init() {
 		"function": "background.js",
 	};
 
-	/* the ports we are conected to */	 
+	/* the ports we are conected to */
 	var comports = {};
-	
+
 	/* The tabs we deal with */
 	var tabs = {};
-	
+
 	var activeTab = null;
-	
+
 	function messageSidebarUpdate(tabId) {
-		if ( !tabs.hasOwnProperty(tabId) ) {
+		if (!tabs.hasOwnProperty(tabId)) {
 			console.log("messageSidebarUpdate: scheduled to update invalid tab " + tabId);
 		} else {
 			try {
@@ -38,57 +38,57 @@ async function init() {
 			catch (ex) {
 				console.error("messageSidebarUpdate: error" + JSON.stringify(ex));
 				delete comports.sidebar;
-			}	
+			}
 		}
 	}
-	
+
 	var updateMessageTimeout = null;
-	
+
 	function triggerSidebarUpdate(tabId) {
-		if ( updateMessageTimeout != null ) {
+		if (updateMessageTimeout != null) {
 			clearTimeout(updateMessageTimeout);
 			// No need to reset to null, as JS in synchronous!
 		}
-		if ( comports.hasOwnProperty("sidebar") ) {
+		if (comports.hasOwnProperty("sidebar")) {
 			messageSidebarUpdate(tabId);
 		} else {
 			console.log("triggerSidebarUpdate: postponing trigger");
 			updateMessageTimeout = setTimeout(triggerSidebarUpdate, 100, tabId);
 		}
 	}
-	
+
 	/*
 	 * tab management
-	 */	
+	 */
 	function onTabCreatedCallback(tab) {
 		if (!tab.hasOwnProperty("id") || !tab.hasOwnProperty("url")) {
-				throw ("onTabCreatedCallback: tab created is invalid. " + JSON.stringify(tab));
+			throw ("onTabCreatedCallback: tab created is invalid. " + JSON.stringify(tab));
 		}
 		console.debug("onTabCreatedCallback: tab created " + JSON.stringify(tab));
 		let id = tab.id.toString();
-		if ( tabs[id] ) {
-			throw("onTabCreatedCallback: created existing tab "+id);
-		} 
+		if (tabs[id]) {
+			throw ("onTabCreatedCallback: created existing tab " + id);
+		}
 		tabs[id] = new TabInfo(tab.url);
 	}
-	
+
 	function onTabRemovedCallback(tabid) {
 		let id = tabid.toString();
 		console.debug("onTabRemovedCallback: tab (" + tabid + ") removed.");
-		if ( !tabs.hasOwnProperty(id) ) {
-			console.warn("onTabRemovededCallback: removing non-existing tab "+ id 
+		if (!tabs.hasOwnProperty(id)) {
+			console.warn("onTabRemovededCallback: removing non-existing tab " + id
 				+ "(maybe a stale one from before loading the extension)");
 		}
 		delete tabs[id];
 	}
-	
+
 	async function onTabActivatedCallback(activeInfo) {
-		if ( !activeInfo.hasOwnProperty("tabId") ) {
-			throw("onTabActivatedCallback: inavlid activeInfo (" + JSON.stringify(activeInfo) + ")." );
+		if (!activeInfo.hasOwnProperty("tabId")) {
+			throw ("onTabActivatedCallback: inavlid activeInfo (" + JSON.stringify(activeInfo) + ").");
 		}
 		let tabId = activeInfo.tabId.toString();
-		if ( !tabs.hasOwnProperty(tabId) ) {
-			console.info("onTabActivatedCallback: activated unknown tab ("+tabId+"), creating tabInfo.");
+		if (!tabs.hasOwnProperty(tabId)) {
+			console.info("onTabActivatedCallback: activated unknown tab (" + tabId + "), creating tabInfo.");
 			let tab = await browser.tabs.get(activeInfo.tabId);
 			tabs[tabId] = new TabInfo(tab.url);
 			/* TODO: populate Tab from tabinfo */
@@ -96,70 +96,81 @@ async function init() {
 		activeTab = tabId;
 		triggerSidebarUpdate(tabId);
 		console.debug("onTabActivatedCallback: tab (" + JSON.stringify(activeInfo) + ").");
-	} 
-	
+	}
+
 	function onTabUpdatedCallback(tabId, changeInfo, tab) {
+		console.warn(JSON.stringify(changeInfo));
 		let id = tabId.toString();
 		if (!tabs.hasOwnProperty(id)) {
-			console.info("onTabUpdatedCallback: updated unknown tab ("+id+"), creating tabInfo.");
-				if (!tab.hasOwnProperty("url")) {
-				throw("onTabUpdatedCallback: activated invalid tab, no property url ("+JSON.stringify(tab)+")");
+			console.info("onTabUpdatedCallback: updated unknown tab (" + id + "), creating tabInfo.");
+			if (!tab.hasOwnProperty("url")) {
+				throw ("onTabUpdatedCallback: activated invalid tab, no property url (" + JSON.stringify(tab) + ")");
 			}
 			tabs[id] = new TabInfo(tab.url);
 		}
-		if (tab.status === "complete") {
+		if (tab.status === "loading") {
+			if (tabs[id].url !== changeInfo.url) {
+				console.warn(changeInfo.url);
+				tabs[id] = new TabInfo(changeInfo.url);
+				triggerSidebarUpdate(tabId);
+			} else {
+				/* TODO: what else? */
+			}
+		} else if (tab.status === "complete") {
 			if (id === activeTab) {
 				console.debug("onTabUpdatedCallback: activeTab (" + id + ") switched to complete state. Triggering update");
 				triggerSidebarUpdate(tabId);
 			} else {
 				console.info("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") switched to complete state while inactive. Active Tab = " + activeTab);
-			}					
-		} else if (tab.status === "loading") {
-			console.debug("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") updated - loading state.");
+			}
 		} else {
 			console.error("onTabUpdatedCallback: Tab Id (" + id + "," + tab.url + ") switched to unknown state (" + tab.status + ")");
 		}
+		triggerSidebarUpdate(tabId);
 	}
-	
+
 	async function onHeadersReceivedCallback(details) {
-	    if (!details.hasOwnProperty("tabId")) 
-	    	throw("onHeadersReceivedCallback: ");
-	    if (!details.hasOwnProperty("url")) 
-	    	throw("onHeadersReceivedCallback: ");
-	    if (!details.hasOwnProperty("requestId")) 
-	    	throw("onHeadersReceivedCallback: ");
+		if (!details.hasOwnProperty("tabId"))
+			throw ("onHeadersReceivedCallback: ");
+		if (!details.hasOwnProperty("url"))
+			throw ("onHeadersReceivedCallback: ");
+		if (!details.hasOwnProperty("requestId"))
+			throw ("onHeadersReceivedCallback: ");
 		console.debug("headersReceivedCallback: called for" + " tab id:" + details.tabId +
-				" url: " + details.url + " Request ID: " + details.requestId);
-		// Paranoia
+			" url: " + details.url + " Request ID: " + details.requestId);
+
 		if (!tabs.hasOwnProperty("" + details.tabId + "")) {
 			console.error("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");
 			try {
 				let tab = await browser.tabs.get(details.tabId);
 				tabs[tabId] = new TabInfo(tab.url);
-			} catch(ex) {
+			} catch (ex) {
 				console.error("onHeadersReceivedCallback: exception when correcting tab");
 				return;
 			}
 		}
-		// End Paranoia
 
-		let targetURL = reduceUrl(details.url)
-		let securityInfo = await browser.webRequest.getSecurityInfo(details.requestId, { "certificateChain": true });
-		console.debug("security Info = " + JSON.stringify(securityInfo));
+		if (details.url === tabs[details.tabId].url) { /* actually we are reloading this tab */
+			tabs[details.tabId] = new TabInfo(details.url);
+		} else {
+			let targetURL = reduceUrl(details.url)
+			let securityInfo = await browser.webRequest.getSecurityInfo(details.requestId, { "certificateChain": true });
+			console.debug("security Info = " + JSON.stringify(securityInfo));
 
-		if ((securityInfo === undefined || securityInfo === null || securityInfo === false)) {
-			console.warn("headersReceivedCallback/getSecurityInfoPromise didnt return a securityInfoObject for site with protocol" + targetURL.protocol + "!");
-			// TODO: What, if there is no security info?
-			return;
+			if ((securityInfo === undefined || securityInfo === null || securityInfo === false)) {
+				console.warn("headersReceivedCallback/getSecurityInfoPromise didnt return a securityInfoObject for site with protocol" + targetURL.protocol + "!");
+				// TODO: What, if there is no security info?
+				return;
+			}
+
+			let elem = new TabInfo(JSON.parse(JSON.stringify(targetURL)));
+			elem.requestId = details.requestId;
+			elem.security = JSON.parse(JSON.stringify(securityInfo)) || null;
+			// FIXME: we only want to push, if there is something new.
+			tabs["" + details.tabId + ""].res.push(elem);
 		}
-		
-		let elem = new TabInfo(JSON.parse(JSON.stringify(targetURL)));
-		elem.requestId=details.requestId;
-		elem.security = JSON.parse(JSON.stringify(securityInfo)) || null;
-		// FIXME: we only want to push, if there is something new.
-		tabs["" + details.tabId + ""].res.push(elem);
 	}
-	
+
 	/*
 	 * communication with other parts
 	 */
@@ -168,44 +179,44 @@ async function init() {
 	 * Sidebar communication
 	 */
 	function onSidebarMessageReceivedCallback(message, sender, receipt_fn) {
-		if (sender.name === "sidebar") {	
+		if (sender.name === "sidebar") {
 			console.debug("onSidebarMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
 			/* TODO: identify and process known message here */
-			 if (message.cmd === "HELO") {
-            	comports.sidebar.postMessage({"cmd": "OLEH", "text": "sidebar script. This is background."});
-            } else if (message.cmd === "OLEH") {
-            	console.debug("sideBarCommandProcessor: connection established -\"" + message.text + "\"");
-            } 
+			if (message.cmd === "HELO") {
+				comports.sidebar.postMessage({ "cmd": "OLEH", "text": "sidebar script. This is background." });
+			} else if (message.cmd === "OLEH") {
+				console.debug("sideBarCommandProcessor: connection established -\"" + message.text + "\"");
+			}
 			/* End TODO */
 			else {
-				console.warn("onSidebarMessageReceivedCallback: received unknown message \"" 
+				console.warn("onSidebarMessageReceivedCallback: received unknown message \""
 					+ JSON.stringify(message) + "\"");
 			}
 			if (receipt_fn) {
 				receipt_fn({ "received": true });
 			}
 		} else {
-			console.error("onSidebarMessageReceivedCallback: received message from unknown sender:" 
-				+ "(" + JSON.stringify(sender) + ")" 
-				+ "\" " + JSON.stringify(message) + "\"" );
+			console.error("onSidebarMessageReceivedCallback: received message from unknown sender:"
+				+ "(" + JSON.stringify(sender) + ")"
+				+ "\" " + JSON.stringify(message) + "\"");
 		}
 	}
-	
+
 	/*
 	 * communication hub
 	 */
-	
+
 	function onConnectCallback(port) {
 		if (!port.hasOwnProperty("name")) {
 			throw ("onConnectCallback: port connected is invalid. " + JSON.stringify(port));
 		}
-		if ( port.name === "sidebar" ) {
+		if (port.name === "sidebar") {
 			console.debug("onConnectCallback: connection accepted from sidebar");
 			comports.sidebar = port;
-			comports.sidebar.postMessage({ "cmd" : "HELO", "text": "sidebar script. This is background."});
+			comports.sidebar.postMessage({ "cmd": "HELO", "text": "sidebar script. This is background." });
 			comports.sidebar.onMessage.addListener(onSidebarMessageReceivedCallback);
 		} else {
-			console.warn ("onConnectCallback: connected from unknown port \"" + port.name +"\"");
+			console.warn("onConnectCallback: connected from unknown port \"" + port.name + "\"");
 		}
 	}
 
@@ -216,15 +227,15 @@ async function init() {
 		"extension": extension,
 	};
 	try {
-		browser.browserAction.onClicked.addListener( function (tab) {
+		browser.browserAction.onClicked.addListener(function(tab) {
 			browser.sidebarAction.toggle();
 		});
-		
-	 	browser.runtime.onConnect.addListener(onConnectCallback);
-	 	
-	 	browser.tabs.onCreated.addListener(onTabCreatedCallback);
+
+		browser.runtime.onConnect.addListener(onConnectCallback);
+
+		browser.tabs.onCreated.addListener(onTabCreatedCallback);
 		browser.tabs.onRemoved.addListener(onTabRemovedCallback);
-	
+
 		browser.tabs.onActivated.addListener(onTabActivatedCallback);
 
 		browser.tabs.onUpdated.addListener(onTabUpdatedCallback,
@@ -248,16 +259,16 @@ async function init() {
 
 init()
 	.then(
-	function(res) {
-		let  msg_fn = null;
-		if ( res.result === "OK" ) {
-			msg_fn=console.log;
-		} else if ( res.result === "Failed" ) {
-			msg_fn = console.error
-		} else {
-			throw ("init: unknown result status (" + JSON.stringify(res) + ")");
-		}
-		msg_fn(JSON.stringify(res)); 
-	},
-	function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
-);
+		function(res) {
+			let msg_fn = null;
+			if (res.result === "OK") {
+				msg_fn = console.log;
+			} else if (res.result === "Failed") {
+				msg_fn = console.error
+			} else {
+				throw ("init: unknown result status (" + JSON.stringify(res) + ")");
+			}
+			msg_fn(JSON.stringify(res));
+		},
+		function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
+	);
