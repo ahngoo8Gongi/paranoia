@@ -78,7 +78,9 @@ async function init() {
 							.setInnerHtml(res.url)
 							.build() )
 						.setAttribute("id","UrlHost")
-						.addCssClass("popup")
+						.makePopup({
+							"text" : res.url 
+						})
 						.addCssClass("truncated")
 						.build() )
 					.append( new HtmlBuilder("td")

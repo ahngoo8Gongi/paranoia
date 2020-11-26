@@ -29,18 +29,22 @@ class HtmlBuilder {
 		this.node.innerHTML = value;
 		return this;
 	}
-	makePopup() {
+	makePopup(popup_parms) {
+		if ( this.node.id === undefined ) {
+			throw("Attribute `id` must be set before creating a popup"); 
+		}
 		this.addCssClass("popup");
 		this.addEventListener("mouseover", function(event) {
-			console.error("Launching popup process for " + this.id);
+			/* console.debug("Launching popup process for " + this.id); */
 			this.classList.add("triggered");
 			this.mouseover_timeout_fn = setTimeout(function(arg) {
-				console.error("Launching popup for " + arg[0].id);
-				arg[0].classList.remove("triggered");
+				let popup_host = arg[0];
+				console.error("Launching popup for " + popup_host.id);
+				popup_host.classList.remove("triggered");
 				let popup = new HtmlBuilder("span")
-					.setInnerHtml("text")
+					.setInnerHtml(popup_parms.text || "default text")
 					.setAttribute("class", "popuptext")
-					.setAttribute("id", "Popup Text")
+					.setAttribute("id", popup_host.id + "_popup_text")
 					.addCssClass("show")
 					.addEventListener("click", function() {
 						console.error("clicked on " + this.id + ". Closing");
@@ -68,7 +72,7 @@ class HtmlBuilder {
 						}
 					})
 					.build();
-				arg[0].append(popup);
+				popup_host.append(popup);
 				console.error("Starting fade out timer on " + popup.getAttribute("id"));
 				popup.fade_out_timer = setTimeout(function(iarg) {
 					console.error("Timeout over Closing on " + iarg[0].id);
