@@ -3,6 +3,13 @@
 	height: 1.8em;
 }
 
+.langEN {
+	display: none;
+}
+.langDE {
+	display: none;
+}
+
 /* Popup container - can be anything you want */
 .triggered {	
 	border-width: 1px;

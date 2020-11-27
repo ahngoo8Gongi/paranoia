@@ -142,8 +142,8 @@ async function init() {
 			throw ("onHeadersReceivedCallback: ");
 		console.debug("headersReceivedCallback: called for" + " tab id:" + details.tabId +
 			" url: " + details.url + " Request ID: " + details.requestId);
-
-		if (!tabs.hasOwnProperty("" + details.tabId + "")) {
+		let tabId = details.tabId.toString();
+		if (!tabs.hasOwnProperty(tabId)) {
 			console.error("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");
 			
 				let tab = await browser.tabs.get(details.tabId);
@@ -151,8 +151,8 @@ async function init() {
 			
 		}
 
-		if (details.url === tabs[details.tabId].url) { /* actually we are reloading this tab */
-			tabs[details.tabId] = new TabInfo(details.url);
+		if (details.url === tabs[tabId].url) { /* actually we are reloading this tab */
+			tabs[tabId] = new TabInfo(details.url);
 		} else {
 			let targetURL = reduceUrl(details.url)
 			let securityInfo = await browser.webRequest.getSecurityInfo(details.requestId, { "certificateChain": true });
@@ -168,7 +168,7 @@ async function init() {
 			elem.requestId = details.requestId;
 			elem.security = JSON.parse(JSON.stringify(securityInfo)) || null;
 			// FIXME: we only want to push, if there is something new.
-			tabs["" + details.tabId + ""].res.push(elem);
+			tabs[tabId].res.push(elem);
 		}
 	}
 

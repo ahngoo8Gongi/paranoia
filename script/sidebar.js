@@ -205,18 +205,15 @@ for (let button of document.getElementsByName("confirmation")) {
 
 for (var i = 0; i < document.styleSheets.length; i++) {
 	let sheet = document.styleSheets[i];
-	if (sheet.title === "sidebar") {
-		for (let r = 0; r < sheet.cssRules.length; r++) {
-			let rule = sheet.cssRules[r];
-			if ( rule.type == CSSRule.STYLE_RULE) {
-				if (rule.selectorText.startsWith(".langDE")) {
-					sheet.deleteRule(r);
-					sheet.insertRule(".langDE { display: block; }", r);
-					console.log("Modified CSS Style Rule " + r + ":" + sheet.cssRules[r].cssText +"/" + sheet.cssRules[r].selectorText);
-					break;
-				}
-			} 
+	for (let r = 0; r < sheet.cssRules.length; r++) {
+		let rule = sheet.cssRules[r];
+		if (rule.type == CSSRule.STYLE_RULE) {
+			if (rule.selectorText.startsWith(".langDE")) {
+				sheet.deleteRule(r);
+				sheet.insertRule(".langDE { display: block; }", r);
+				console.log("Modified CSS Style Rule " + r + ":" + sheet.cssRules[r].cssText + "/" + sheet.cssRules[r].selectorText);
+				break;
+			}
 		}
-		break;
 	}
 }

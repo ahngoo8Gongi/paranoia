@@ -4,12 +4,6 @@ html {
 .httpstatus {
 	width: 3em;	
 }
-.langEN {
-	display: none;
-}
-.langDE {
-	display: none;
-}
 
 .truncate {
  /*  max-width: calc(100%-9em); /* TODO: need to adjust em value to actual widths */
