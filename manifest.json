@@ -22,7 +22,7 @@
 			"script/sha256.js",
 			"script/helper.js",
 			"script/options.js",
-			"script/Tab.js",
+			"script/TabInfo.js",
 			"script/background.js"
 		]
 	},
@@ -36,20 +36,24 @@
 		"default_panel": "html/sidebar.html",
 		"default_icon": "icons/sidebar_icon.png"
 	},
-	"content_scripts" :  [
-  		{
-    		"matches": ["<all_urls>"],
-    		"js": ["script/content.js" ]
-  		}
+	"content_scripts": [
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"js": [
+				"script/content.js"
+			]
+		}
 	],
-	"options_ui" : {
+	"options_ui": {
 		"page": "html/options.html",
-  		"browser_style": true
+		"browser_style": true
 	},
 	"browser_specific_settings": {
 		"gecko": {
 			"update_url": "https://nopicturesplease.de/paranoia/",
 			"id": "paranoia@nopicturesplease.de"
-			}
+		}
 	}
 }

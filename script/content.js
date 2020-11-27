@@ -1,5 +1,5 @@
 /**
- * @file Paranoia extension for Mozilla Firefox
+ * @file Paranoia extension for Mozilla Firefox (content.js)
  * @author Holger Smolinski
  * @copyright (C), 2020 Holger Smolinski
  * @license MPL-2.0 This Source Code Form is subject to the terms of the Mozilla
