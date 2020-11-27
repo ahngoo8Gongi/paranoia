@@ -145,13 +145,10 @@ async function init() {
 
 		if (!tabs.hasOwnProperty("" + details.tabId + "")) {
 			console.error("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");
-			try {
+			
 				let tab = await browser.tabs.get(details.tabId);
 				tabs[tabId] = new TabInfo(tab.url);
-			} catch (ex) {
-				console.error("onHeadersReceivedCallback: exception when correcting tab");
-				return;
-			}
+			
 		}
 
 		if (details.url === tabs[details.tabId].url) { /* actually we are reloading this tab */
@@ -192,7 +189,7 @@ async function init() {
 			if (message.cmd === "HELO") {
 				comports.sidebar.postMessage({ "cmd": "OLEH", "text": "sidebar script. This is background." });
 			} else if (message.cmd === "OLEH") {
-				console.debug("sideBarCommandProcessor: connection established -\"" + message.text + "\"");
+				console.debug("onSidebarMessageReceivedCallback: connection established -\"" + message.text + "\"");
 			}
 			/* End TODO */
 			else {

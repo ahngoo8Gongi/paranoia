@@ -129,17 +129,16 @@ async function init() {
 	 * Communication with background script 
 	 */
 	function sideBarCommandProcessor(m) {
-		console.debug("In sidebar script, received message from background script: "
-			+ JSON.stringify(m));
+		if (!m.hasOwnProperty("cmd")) throw ("Invalid message. No cmd property");
 		if (m.cmd === "HELO") {
 			myPort.postMessage({ "cmd": "OLEH", "text": "background script. This is sidebar." });
 		} else if (m.cmd === "OLEH") {
-			console.debug("sideBarCommandProcessor: connection established -\"" + m.text + "\"");
+			console.info("sideBarCommandProcessor: connection established -\"" + m.text + "\"");
 		} else if (m.cmd === "DISP") {
-			console.debug("sideBarCommandProcessor: Display -\"" + JSON.stringify(m.arg) + "\"");
+			if (!m.hasOwnProperty("arg")) throw ("Invalid message. No arg property");
+			console.debug("sideBarCommandProcessor: change tab display");
 			triggerTabDisplayUpdate(m.arg)
-		}
-		else {
+		} else {
 			console.warn("Invalid message" + JSON.stringify(m))
 		}
 	}
@@ -155,7 +154,7 @@ async function init() {
 			name: "sidebar"
 		});
 		myPort.onMessage.addListener(sideBarCommandProcessor);
-		myPort.postMessage({ "cmd": "HELO", "text": "background script. This is sidenbar." });
+		myPort.postMessage({ "cmd": "HELO", "text": "background script. This is sidebar." });
 
 		/* TODO: keepalive mechanism... */
 
@@ -194,7 +193,7 @@ function enablePlugin() {
 		name: "sidebar"
 	});
 	myPort.onMessage.addListener(onBGReady);
-	myPort.postMessage({ "cmd": "ACTI", "text": "background script. This is sidenbar." });
+	myPort.postMessage({ "cmd": "ACTI", "text": "background script. This is sidebar." });
 }
 
 for (let button of document.getElementsByName("confirmation")) {
@@ -206,14 +205,11 @@ for (let button of document.getElementsByName("confirmation")) {
 
 for (var i = 0; i < document.styleSheets.length; i++) {
 	let sheet = document.styleSheets[i];
-	console.log("stylesheet :" + sheet.title);
 	if (sheet.title === "sidebar") {
-		console.log("Sheet " + sheet.title + " includes " + sheet.cssRules.length + "rules");
 		for (let r = 0; r < sheet.cssRules.length; r++) {
 			let rule = sheet.cssRules[r];
 			if ( rule.type == CSSRule.STYLE_RULE) {
 				if (rule.selectorText.startsWith(".langDE")) {
-					console.log("CSS Style Rule " + r + ":" + rule.cssText +"/" + rule.selectorText);
 					sheet.deleteRule(r);
 					sheet.insertRule(".langDE { display: block; }", r);
 					console.log("Modified CSS Style Rule " + r + ":" + sheet.cssRules[r].cssText +"/" + sheet.cssRules[r].selectorText);
@@ -221,5 +217,6 @@ for (var i = 0; i < document.styleSheets.length; i++) {
 				}
 			} 
 		}
+		break;
 	}
 }
