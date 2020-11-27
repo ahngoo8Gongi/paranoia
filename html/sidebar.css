@@ -1,9 +1,14 @@
 html {
 	background-color: rgb(255,255,240);
 }
-
 .httpstatus {
 	width: 3em;	
+}
+.langEN {
+	display: none;
+}
+.langDE {
+	display: none;
 }
 
 .truncate {
@@ -19,7 +24,6 @@ html {
 	background-color: orange;
 	width: 50%;
 }
-
 .nossl {
 	background-color: grey;
 }
