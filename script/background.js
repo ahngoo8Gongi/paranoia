@@ -183,7 +183,7 @@ async function init() {
 	function onSidebarMessageReceivedCallback(message, sender, receipt_fn) {
 		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
 		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
-		
+
 		if (sender.name === "sidebar") {
 			console.debug("onSidebarMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
 			/* TODO: identify and process known message here */
@@ -220,10 +220,10 @@ async function init() {
 			if (comports.content[sender.sender.tab.id]) {
 				/* TODO: identify and process known message here */
 				if (message.cmd === "HELO") {
-					let msg ={
-						"cmd": "OLEH", 
+					let msg = {
+						"cmd": "OLEH",
 						"text": "content script. " + sender.sender.tab.id + ", This is background."
-						};
+					};
 					comports.content[sender.sender.tab.id].postMessage(msg);
 				} else if (message.cmd === "OLEH") {
 					console.debug("onContentMessageReceivedCallback: connection established -\"" + message.text + "\"");
@@ -266,7 +266,7 @@ async function init() {
 			throw ("onConnectCallback: connected from unknown port \"" + port.name + "\"");
 		}
 		port.postMessage({ "cmd": "HELO", "text": name + ". This is background." });
-		
+
 		console.info("onConnectCallback: connection accepted from " + name);
 	}
 
@@ -307,18 +307,45 @@ async function init() {
 	return rval;
 }
 
-init()
-	.then(
-		function(res) {
-			let msg_fn = null;
-			if (res.result === "OK") {
-				msg_fn = console.log;
-			} else if (res.result === "Failed") {
-				msg_fn = console.error
-			} else {
-				throw ("init: unknown result status (" + JSON.stringify(res) + ")");
+function waitForActvation() {
+	var sidebar_port;
+	
+	function onSidebarConfirmation(message, sender, receipt_fn) {
+		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
+		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
+
+		if (sender.name === "sidebar") {
+			console.debug("onSidebarConfirmation: received \"" + JSON.stringify(message) + "\"");
+			if (message.cmd === "ACTI") {
+				browser.runtime.onConnect.removeListener(waitForSidebarConnect);
+				init()
+					.then(
+						function(res) {
+							let msg_fn = null;
+							if (res.result === "OK") {
+								sidebar_port.postMessage({ "cmd": "ITCA", "text": name + ". This is background." });
+								msg_fn = console.log;
+							} else if (res.result === "Failed") {
+								msg_fn = console.error
+							} else {
+								throw ("init: unknown result status (" + JSON.stringify(res) + ")");
+							}
+							msg_fn(JSON.stringify(res));
+						},
+						function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
+					);
 			}
-			msg_fn(JSON.stringify(res));
-		},
-		function(ex) { console.error("Failed to initialize: " + JSON.stringify(ex)); }
-	);
+		}
+	}
+
+	function waitForSidebarConnect(port) {
+		if (port.name === "sidebar") {
+			sidebar_port = port;
+			port.onMessage.addListener(onSidebarConfirmation);
+		}
+	}
+
+	browser.runtime.onConnect.addListener(waitForSidebarConnect);
+}
+
+waitForActvation();
