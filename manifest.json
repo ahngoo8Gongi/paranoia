@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Paranoia",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"author": "Holger Smolinski",
 	"developer": {
 		"name": "Holger Smolinski",
@@ -21,7 +21,7 @@
 		"scripts": [
 			"script/sha256.js",
 			"script/helper.js",
-			"options.js",
+			"script/options.js",
 			"script/Tab.js",
 			"script/background.js"
 		]
@@ -48,7 +48,6 @@
 	},
 	"browser_specific_settings": {
 		"gecko": {
-			"strict_min_version": "62.0b5",
 			"update_url": "https://nopicturesplease.de/paranoia/",
 			"id": "paranoia@nopicturesplease.de"
 			}
