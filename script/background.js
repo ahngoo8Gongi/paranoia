@@ -101,8 +101,10 @@ async function init() {
 	}
 
 	function onTabUpdatedCallback(tabId, changeInfo, tab) {
-		console.warn(JSON.stringify(changeInfo));
+		if ( tabId === -1 ) throw ("Invalid TabId "+tabId+". changeInfo = " + JSON.stringify(changeInfo) +" tab= " +JSON.stringify(changeInfo));
+		console.debug(JSON.stringify(changeInfo));
 		let id = tabId.toString();
+		
 		if (!tabs.hasOwnProperty(id)) {
 			console.info("onTabUpdatedCallback: updated unknown tab (" + id + "), creating tabInfo.");
 			if (!tab.hasOwnProperty("url")) {
@@ -278,7 +280,7 @@ async function init() {
 	};
 	try {
 		browser.browserAction.onClicked.addListener(function(tab) {
-			browser.sidebarAction.toggle();
+			browser.sidebarAction.isOpen() ? browser.sidebarAction.close() : browser.sidebarAction.open();
 		});
 
 		browser.runtime.onConnect.addListener(onConnectCallback);

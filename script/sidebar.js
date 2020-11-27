@@ -190,13 +190,36 @@ function onBGReady(m) {
 }
 
 function enablePlugin() {
-		var myPort = browser.runtime.connect({
-			name: "sidebar"
-		});
-		myPort.onMessage.addListener(onBGReady);
-		myPort.postMessage({ "cmd": "ACTI", "text": "background script. This is sidenbar." });
+	var myPort = browser.runtime.connect({
+		name: "sidebar"
+	});
+	myPort.onMessage.addListener(onBGReady);
+	myPort.postMessage({ "cmd": "ACTI", "text": "background script. This is sidenbar." });
 }
 
 for (let button of document.getElementsByName("confirmation")) {
 	button.addEventListener("click", enablePlugin);
+}
+
+// var acceptedLanguages = browser.i18n.getAcceptLanguages();
+// console.log(JSON.stringify(acceptedLanguages));
+
+for (var i = 0; i < document.styleSheets.length; i++) {
+	let sheet = document.styleSheets[i];
+	console.log("stylesheet :" + sheet.title);
+	if (sheet.title === "sidebar") {
+		console.log("Sheet " + sheet.title + " includes " + sheet.cssRules.length + "rules");
+		for (let r = 0; r < sheet.cssRules.length; r++) {
+			let rule = sheet.cssRules[r];
+			if ( rule.type == CSSRule.STYLE_RULE) {
+				if (rule.selectorText.startsWith(".langDE")) {
+					console.log("CSS Style Rule " + r + ":" + rule.cssText +"/" + rule.selectorText);
+					sheet.deleteRule(r);
+					sheet.insertRule(".langDE { display: block; }", r);
+					console.log("Modified CSS Style Rule " + r + ":" + sheet.cssRules[r].cssText +"/" + sheet.cssRules[r].selectorText);
+					break;
+				}
+			} 
+		}
+	}
 }

@@ -26,13 +26,17 @@ class HtmlBuilder {
 		return this;
 	}
 	setInnerHtml(value) {
+		const tags = new DOMParser().parseFromString(value, `text/html`);
+		console.error(JSON.stringify(tags));
+		
 		this.node.innerHTML = value;
 		return this;
 	}
-	makePopup(popup_parms) {
+	makePopup(parms) {
 		if ( this.node.id === undefined ) {
 			throw("Attribute `id` must be set before creating a popup"); 
 		}
+		let popup_parms = parms;
 		this.addCssClass("popup");
 		this.addEventListener("mouseover", function(event) {
 			/* console.debug("Launching popup process for " + this.id); */
