@@ -9,9 +9,10 @@
  
 class TabInfo {
 		constructor(url) {
-			this.url = url;       /* (reduced) url of location */
+			if ( !url ) console.warn("TabInfo Created without URL");
+			this.url = url;       /* eated (reduced) url of location */
 			this.status = false;
-			this.urlhash = SHA256(url);  /* hash of (reduced) URL */
+			if (url) this.urlhash = SHA256(url);  /* hash of (reduced) URL */
 			this.requestID = null; 
 			this.security = null; /* security information */
 			this.cookies = {      /* cookies sent/received */

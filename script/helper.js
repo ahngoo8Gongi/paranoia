@@ -84,3 +84,27 @@ function orderTabByHost(tab, asc) {
 		}
 	})
 }
+
+	function cssDisplayLanguage(sheet, selector, enable) {
+		let found = false;
+		const languageSelector=".lang-"+selector
+		for (let r = 0; r < sheet.cssRules.length; r++) {
+			let rule = sheet.cssRules[r];
+			if (rule.type == CSSRule.STYLE_RULE &&
+				rule.selectorText.startsWith(languageSelector)) {
+				sheet.deleteRule(r);
+				sheet.insertRule(languageSelector + " { display: "+ (enable ? "block" : "none") + "; }", r);
+				console.debug("Modified CSS Style Rule " + r + ":" + sheet.cssRules[r].cssText + "/" + sheet.cssRules[r].selectorText);
+				found = true;
+			}
+		}
+		return found;
+	}
+
+	function cssEnableLanguage(lang, default_lang) {
+		for (var sheet of document.styleSheets) {
+			cssDisplayLanguage(sheet, lang, true) ?
+			cssDisplayLanguage(sheet, default_lang, false) :
+			cssDisplayLanguage(sheet, default_lang, true);
+		}
+	}

@@ -31,9 +31,7 @@ async function init() {
 	var activeTab = null;
 
 	function messageSidebarUpdate(tabId) {
-		if (!tabs.hasOwnProperty(tabId)) {
-			console.log("messageSidebarUpdate: scheduled to update invalid tab " + tabId);
-		} else {
+		if (!tabs.hasOwnProperty(tabId)) throw("messageSidebarUpdate: scheduled to update invalid tab " + tabId);
 			try {
 				comports.sidebar.postMessage({ "cmd": "DISP", "arg": tabs[tabId] });
 			}
@@ -41,7 +39,6 @@ async function init() {
 				console.error("messageSidebarUpdate: error" + JSON.stringify(ex));
 				delete comports.sidebar;
 			}
-		}
 	}
 
 	var updateMessageTimeout = null;
@@ -102,7 +99,8 @@ async function init() {
 
 	function onTabUpdatedCallback(tabId, changeInfo, tab) {
 		if ( tabId === -1 ) throw ("Invalid TabId "+tabId+". changeInfo = " + JSON.stringify(changeInfo) +" tab= " +JSON.stringify(changeInfo));
-		console.debug(JSON.stringify(changeInfo));
+		
+		console.debug("onTabUpdatedCallback ("+tabId+"): " + JSON.stringify(changeInfo));
 		let id = tabId.toString();
 		
 		if (!tabs.hasOwnProperty(id)) {
@@ -140,15 +138,19 @@ async function init() {
 			throw ("onHeadersReceivedCallback: ");
 		if (!details.hasOwnProperty("requestId"))
 			throw ("onHeadersReceivedCallback: ");
+			
 		console.debug("headersReceivedCallback: called for" + " tab id:" + details.tabId +
 			" url: " + details.url + " Request ID: " + details.requestId);
+		if ( details.tabId == -1 ) {
+			console.warn("onHeadersReceivedCallback: received headers for invalid tab (-1)");
+			return;	
+		}
+		
 		let tabId = details.tabId.toString();
 		if (!tabs.hasOwnProperty(tabId)) {
-			console.error("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");
-			
-				let tab = await browser.tabs.get(details.tabId);
-				tabs[tabId] = new TabInfo(tab.url);
-			
+			console.info("headersReceivedCallback tab " + details.tabId + " hasnt been present before, correcting");	
+			let tab = await browser.tabs.get(details.tabId);
+			tabs[tabId] = new TabInfo(tab.url);
 		}
 
 		if (details.url === tabs[tabId].url) { /* actually we are reloading this tab */
@@ -179,67 +181,65 @@ async function init() {
 	/*
 	 * Sidebar communication
 	 */
-	function onSidebarMessageReceivedCallback(message, sender, receipt_fn) {
+	function onSidebarMessageReceivedCallback(m, sender, receipt_fn) {
 		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
 		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
+		if (!m.hasOwnProperty("cmd")) throw ("Invalid Message: no property cmd");
 
 		if (sender.name === "sidebar") {
-			console.debug("onSidebarMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
+			console.debug("onSidebarMessageReceivedCallback: received \"" + JSON.stringify(m) + "\"");
 			/* TODO: identify and process known message here */
-			if (message.cmd === "HELO") {
+			if (m.cmd === "HELO") {
 				comports.sidebar.postMessage({ "cmd": "OLEH", "text": "sidebar script. This is background." });
-			} else if (message.cmd === "OLEH") {
-				console.debug("onSidebarMessageReceivedCallback: connection established -\"" + message.text + "\"");
+			} else if (m.cmd === "OLEH") {
+				console.info("onSidebarMessageReceivedCallback: connection established -\"" + m.text + "\"");
 			}
-			/* End TODO */
 			else {
-				console.warn("onSidebarMessageReceivedCallback: received unknown message \""
-					+ JSON.stringify(message) + "\"");
+				throw ("Invalid message" + JSON.stringify(m));
 			}
 			if (receipt_fn) {
 				receipt_fn({ "received": true });
 			}
 		} else {
-			console.error("onSidebarMessageReceivedCallback: received message from unknown sender:"
+			throw("received message from unknown sender:"
 				+ "(" + JSON.stringify(sender) + ")"
-				+ "\" " + JSON.stringify(message) + "\"");
+				+ "\" " + JSON.stringify(m) + "\"");
 		}
 	}
 	/*
 	 * Content communication
 	 */
 
-	function onContentMessageReceivedCallback(message, sender, receipt_fn) {
+	function onContentMessageReceivedCallback(m, sender, receipt_fn) {
 		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
 		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
 		if (!sender.sender.hasOwnProperty("tab")) throw ("Invalid Sender: has no property sender.tab");
 		if (!sender.sender.tab.hasOwnProperty("id")) throw ("Invalid Sender Tab: has no property id");
+		if (!m.hasOwnProperty("cmd")) throw ("Invalid Message: no property cmd");
+		
 		if (sender.name === "content") {
-			console.debug("onContentMessageReceivedCallback: received \"" + JSON.stringify(message) + "\"");
+			console.debug("onContentMessageReceivedCallback: received \"" + JSON.stringify(m) + "\"");
 			if (comports.content[sender.sender.tab.id]) {
-				/* TODO: identify and process known message here */
-				if (message.cmd === "HELO") {
-					let msg = {
-						"cmd": "OLEH",
-						"text": "content script. " + sender.sender.tab.id + ", This is background."
-					};
-					comports.content[sender.sender.tab.id].postMessage(msg);
-				} else if (message.cmd === "OLEH") {
-					console.debug("onContentMessageReceivedCallback: connection established -\"" + message.text + "\"");
+				if (m.cmd === "HELO") {
+					comports.content[sender.sender.tab.id].postMessage({"cmd": "OLEH", "text": "content script. " + sender.sender.tab.id + ", This is background."});
+				} else if (m.cmd === "OLEH") {
+					console.info("onContentMessageReceivedCallback: connection established -\"" + m.text + "\"");
 				}
-				/* End TODO */
 				else {
-					console.warn("onContentMessageReceivedCallback: received unknown message \""
-						+ JSON.stringify(message) + "\"");
+					throw ("Invalid message" + JSON.stringify(m));
 				}
 				if (receipt_fn) {
 					receipt_fn({ "received": true });
 				}
+			} else {
+				throw("received message from unconnected sender:"
+					+ "(" + JSON.stringify(sender) + ")"
+					+ "\" " + JSON.stringify(message) + "\"");
 			}
 		} else {
-			console.error("onContentMessageReceivedCallback: received message from unknown sender:"
-				+ "(" + JSON.stringify(sender) + ")"
-				+ "\" " + JSON.stringify(message) + "\"");
+			throw("received message from unknown sender:"
+					+ "(" + JSON.stringify(sender) + ")"
+					+ "\" " + JSON.stringify(message) + "\"");
 		}
 	}
 
@@ -276,8 +276,8 @@ async function init() {
 		"extension": extension,
 	};
 	try {
-		browser.browserAction.onClicked.addListener(function(tab) {
-			browser.sidebarAction.isOpen() ? browser.sidebarAction.close() : browser.sidebarAction.open();
+		browser.browserAction.onClicked.addListener(function(/* tab */) {
+			browser.sidebarAction.isOpen({}) ? browser.sidebarAction.close() : browser.sidebarAction.open();
 		});
 
 		browser.runtime.onConnect.addListener(onConnectCallback);
@@ -309,7 +309,7 @@ async function init() {
 function waitForActvation() {
 	var sidebar_port;
 	
-	function onSidebarConfirmation(message, sender, receipt_fn) {
+	function onSidebarConfirmation(message, sender /*, receipt_fn */) {
 		if (!sender.hasOwnProperty("name")) throw ("Invalid Sender: has no property name");
 		if (!sender.hasOwnProperty("sender")) throw ("Invalid Sender: has no property sender");
 
